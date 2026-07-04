@@ -36,6 +36,21 @@ longue durée indépendant.
 > **8080**. La web app mentor utilise **8000** par défaut — ne pas réutiliser 8080.
 > Vérifier les ports libres avec `ss -tlnp` avant de lancer.
 
+### Déploiement (production locale, en place)
+
+Le mentor tourne **en permanence** via `start.sh` → session **tmux** `formation`
+(2 fenêtres : `web`, `rappels`), chaque process ayant une boucle de **relance auto**.
+Un **service systemd utilisateur** (`~/.config/systemd/user/formation.service`, copie
+de référence dans `deploy/`) le démarre au boot — `Linger=yes` étant activé pour
+`worff`, aucun sudo ni login n'est requis. Gérer avec
+`systemctl --user {status,restart,stop} formation.service` (préfixer d'un
+`export XDG_RUNTIME_DIR=/run/user/1000` dans un shell non-interactif).
+
+**Accès mobile** : Tailscale Serve expose la VM en HTTPS sur
+`https://ubuntu-srv.tail45201a.ts.net` (→ `127.0.0.1:8000`). Config serve persistante,
+restaurée au boot par tailscaled. `sudo tailscale serve …` nécessite un vrai terminal
+(le préfixe `!` de Claude Code n'a pas de TTY pour le mot de passe).
+
 ## Configuration
 
 `.env` (format `CLE="valeur"`, **jamais** committé) contient :

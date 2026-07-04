@@ -101,6 +101,41 @@ python bot_telegram.py    # le bot (répond aux commandes Telegram)
 python scheduler.py       # les rappels de révision (process séparé)
 ```
 
+## Déploiement permanent (tmux + systemd, sans sudo)
+
+`start.sh` lance le mentor web **et** les rappels dans une session **tmux**
+persistante (`formation`), chaque process étant **relancé automatiquement** s'il
+s'arrête. Un service **systemd utilisateur** le démarre à chaque boot (le *linger*
+étant activé, aucun login ni sudo requis).
+
+```bash
+# Installation du service utilisateur
+mkdir -p ~/.config/systemd/user
+cp deploy/formation.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now formation.service
+
+# Voir les logs en direct
+tmux attach -t formation      # détacher : Ctrl-b puis d
+
+# Gérer le service
+systemctl --user status formation.service
+systemctl --user restart formation.service
+```
+
+### Accès mobile via Tailscale
+
+La VM est sur un tailnet. Après `sudo tailscale serve --bg 8000` (et l'activation
+des certificats HTTPS dans la console Tailscale), l'app est joignable depuis le
+téléphone/tablette sur :
+
+```
+https://ubuntu-srv.<ton-tailnet>.ts.net
+```
+
+Sans HTTPS, l'accès direct `http://<ip-tailscale>:8000` fonctionne aussi (déjà
+chiffré par Tailscale).
+
 ## Utilisation du bot (commandes Telegram)
 
 | Commande          | Action                                             |

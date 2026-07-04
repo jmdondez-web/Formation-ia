@@ -1,0 +1,13 @@
+[Unit]
+Description=Formation IA — mentor web + rappels Telegram (tmux)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/home/worff/formation-ia/start.sh
+ExecStop=/usr/bin/tmux kill-session -t formation
+
+[Install]
+WantedBy=default.target

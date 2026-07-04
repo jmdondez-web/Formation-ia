@@ -16,3 +16,4 @@ lessons_cache.json
 reminders_state.json
 bot_output.log
 bot_test.log
+tmux-boot.log
