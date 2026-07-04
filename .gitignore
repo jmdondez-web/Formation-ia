@@ -1,0 +1,14 @@
+# Secrets / config
+.env
+
+# Environnement virtuel
+venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Données locales & logs
+progression.json
+revisions.json
+bot_output.log
