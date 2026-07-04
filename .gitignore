@@ -11,4 +11,8 @@ __pycache__/
 # Données locales & logs
 progression.json
 revisions.json
+web_progress.json
+lessons_cache.json
+reminders_state.json
 bot_output.log
+bot_test.log

@@ -1,20 +1,30 @@
-# 🎓 Formation IA — Bot Telegram
+# 🎓 Formation IA — Mentor web + Bot Telegram
 
-Bot Telegram de formation à l'IA en français, pensé pour un apprentissage adapté
-**TDAH** : leçons courtes, quiz à choix multiple, et rappels de révision espacée
-(J+1, J+3, J+7).
+Plateforme de formation en français, pensée pour un apprentissage adapté **TDAH** :
+leçons courtes fondées sur les neurosciences de l'apprentissage, quiz corrigés, et
+rappels de révision espacée (J+1, J+3, J+7).
 
-L'apprentissage est organisé par **certifications**. La première, `claude`, prépare à
-la certification Anthropic : le bot t'_entraîne_ à l'examen (il ne délivre pas le
+Deux cibles de certification : **`claude`** (Anthropic) et **`linux`** (fondamentaux
+orientés LPIC-1 / LFCS). Le mentor _entraîne_ à l'examen (il ne délivre pas le
 diplôme officiel).
 
-## Fonctionnalités
+## Deux façons de l'utiliser
 
-- 📚 Leçons progressives regroupées en modules
-- ❓ Quiz à choix multiple après chaque leçon
-- 📝 Examen final avec seuil de réussite
-- 📊 Suivi de progression et de score par utilisateur
-- 🔔 Rappels de révision automatiques (répétition espacée)
+- **🌐 Mentor web (`web_app.py`)** — une page responsive (téléphone, tablette,
+  ordinateur) où un mentor IA (Claude) génère des leçons sur mesure, te fait un quiz,
+  et **corrige tes réponses libres comme un vrai mentor**. C'est le chemin principal.
+- **🤖 Bot Telegram (`bot_telegram.py`)** — la version historique par certifications,
+  avec examen final, directement dans Telegram.
+
+## Fonctionnalités (mentor web)
+
+- 📚 Leçons générées dynamiquement, courtes, fondées sur les neurosciences
+  (récupération active, chunking, double codage, répétition espacée)
+- ❓ Quiz à choix multiple corrigé immédiatement
+- ✍️ Question ouverte de **rappel actif** : tu réponds de mémoire, le mentor évalue
+  le fond et te donne un feedback + un conseil de mémorisation
+- 📊 Progression sauvegardée par certification
+- 🔔 Rappels de révision espacée sur Telegram
 
 ## Prérequis
 
@@ -45,7 +55,7 @@ python3 -m venv venv
 source venv/bin/activate
 
 pip install --upgrade pip
-pip install python-telegram-bot==20.7 anthropic numpy pandas
+pip install -r requirements.txt
 ```
 
 ## Configuration
@@ -55,8 +65,12 @@ Crée un fichier `.env` à la racine (format `CLE="valeur"`) :
 ```env
 TOKEN="ton_token_telegram"
 ANTHROPIC_API_KEY="ta_cle_anthropic"
+TELEGRAM_CHAT_ID="ton_chat_id"
 ```
 
+> ⚠️ La `ANTHROPIC_API_KEY` est **indispensable** au mentor web (génération et
+> correction des leçons). Sans elle, l'app renvoie une erreur claire.
+>
 > ⚠️ Le fichier `.env` contient des secrets et n'est **jamais** committé
 > (il est exclu par `.gitignore`).
 
@@ -68,14 +82,26 @@ Toujours activer l'environnement virtuel d'abord :
 source venv/bin/activate
 ```
 
-Le bot et les rappels sont deux processus indépendants :
+### Mentor web
+
+```bash
+python web_app.py         # sert la page sur http://<serveur>:8000
+python reminders.py       # rappels Telegram (process séparé)
+```
+
+Puis ouvre `http://<ip-du-serveur>:8000` depuis ton téléphone ou ta tablette.
+
+> ⚠️ **Port** : le mentor écoute sur **8000** par défaut. Si ce port est déjà pris
+> (par exemple par une autre app), lance `PORT=8001 python web_app.py`.
+
+### Bot Telegram (optionnel)
 
 ```bash
 python bot_telegram.py    # le bot (répond aux commandes Telegram)
 python scheduler.py       # les rappels de révision (process séparé)
 ```
 
-## Utilisation (commandes Telegram)
+## Utilisation du bot (commandes Telegram)
 
 | Commande          | Action                                             |
 | ----------------- | -------------------------------------------------- |
@@ -92,9 +118,12 @@ python scheduler.py       # les rappels de révision (process séparé)
 
 | Fichier              | Rôle                                                        |
 | -------------------- | ----------------------------------------------------------- |
-| `bot_telegram.py`    | Le bot Telegram et ses commandes                            |
-| `certifications.py`  | Contenu des leçons, quiz et examens (source du bot)         |
-| `scheduler.py`       | Rappels de révision espacée                                 |
-| `agent_claude.py`    | Génération dynamique de leçons via l'API Claude             |
-| `curriculum_tdah.py` | Curriculum utilisé par la génération dynamique              |
-| `progression.json`   | Progression des utilisateurs (généré, local)                |
+| `web_app.py`         | Serveur Flask du mentor web (page + API)                    |
+| `static/index.html`  | Interface responsive (tél/tablette)                         |
+| `mentor.py`          | Génération de leçons + évaluation via l'API Claude          |
+| `curriculum.py`      | Curriculums des pistes `claude` et `linux`                  |
+| `reminders.py`       | Rappels Telegram basés sur la progression web               |
+| `bot_telegram.py`    | Le bot Telegram historique et ses commandes                 |
+| `certifications.py`  | Contenu curé des leçons/examens (source du bot)             |
+| `scheduler.py`       | Rappels de révision espacée (bot)                           |
+| `web_progress.json`  | Progression du mentor web (généré, local)                   |

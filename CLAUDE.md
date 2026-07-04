@@ -14,16 +14,27 @@ utilisateur est en français.
 
 ```bash
 source venv/bin/activate            # toujours activer le venv d'abord
-python bot_telegram.py              # lance le bot (polling Telegram)
-python scheduler.py                 # lance les rappels de révision (process séparé)
-python agent_claude.py              # teste la génération dynamique d'une leçon (appel API)
+
+# --- Web app "Mentor IA" (chemin principal) ---
+python web_app.py                   # sert la page responsive + API (défaut PORT=8000)
+PORT=8001 python web_app.py         # changer de port si besoin
+python reminders.py                 # rappels Telegram basés sur la progression web
+python mentor.py                    # teste la génération d'une leçon (appel API)
+
+# --- Bot Telegram historique (autre chemin) ---
+python bot_telegram.py              # le bot par certifications (polling Telegram)
+python scheduler.py                 # rappels de révision du bot
+
 ./setup.sh                          # install système + venv + saisie du token (Ubuntu)
+pip install -r requirements.txt     # dépendances : anthropic, flask, python-telegram-bot
 ```
 
-Il n'y a ni tests, ni linter, ni build configurés. `setup.sh` installe les
-dépendances via `pip install` direct (pas de `requirements.txt`) : `python-telegram-bot==20.7`,
-`anthropic`, `numpy`, `pandas`. Le bot et le scheduler sont deux processus longue durée
-indépendants qu'il faut lancer séparément.
+Il n'y a ni tests, ni linter, ni build configurés. Chaque service est un processus
+longue durée indépendant.
+
+> ⚠️ **Ports** : le **carnet alimentaire** de l'utilisateur (autre projet) tourne sur
+> **8080**. La web app mentor utilise **8000** par défaut — ne pas réutiliser 8080.
+> Vérifier les ports libres avec `ss -tlnp` avant de lancer.
 
 ## Configuration
 
@@ -37,7 +48,40 @@ inline dans `bot_telegram.py`.
 
 ## Architecture
 
-Deux systèmes de contenu coexistent, et c'est le point le plus important à comprendre :
+### Web app "Mentor IA" (chemin principal, actuel)
+
+Application Flask responsive (tél/tablette) où l'utilisateur suit des leçons et se
+fait corriger « comme un vrai mentor », avec des rappels Telegram. Vise deux
+certifications : **`claude`** (Anthropic) et **`linux`** (fondamentaux LPIC-1/LFCS).
+
+- `web_app.py` — serveur Flask. Sert `static/index.html` et expose l'API JSON :
+  `/api/certs`, `/api/lesson`, `/api/answer` (QCM), `/api/evaluate` (réponse libre),
+  `/api/progress`.
+- `mentor.py` — cœur IA. `generer_lecon()` et `evaluer_reponse()` appellent l'API
+  Claude (`claude-opus-4-8`) avec un **system prompt fondé sur les neurosciences**
+  (récupération active, chunking, double codage, élaboration, répétition espacée,
+  format TDAH). Sorties JSON **garanties** via `output_config.format` (json_schema).
+  `evaluer_reponse` utilise `thinking: adaptive` pour un vrai jugement de mentor.
+- `curriculum.py` — `CURRICULA[cert_id] → modules[] → sujets[]`. Les leçons sont
+  **générées dynamiquement** par le mentor (pas de contenu en dur), puis **mises en
+  cache** dans `lessons_cache.json` (stable pour la révision espacée). Indexation par
+  index global à plat, comme le reste du projet.
+- `static/index.html` — SPA mobile-first, JS vanilla, thème clair/sombre, rendu
+  Markdown minimal maison. Flux : choix de piste → leçon + points clés → QCM corrigé
+  → question ouverte de rappel actif évaluée par le mentor → suivante.
+- `reminders.py` — rappels Telegram (J+1/J+3/J+7) lus depuis `web_progress.json`,
+  envoyés à `TELEGRAM_CHAT_ID`, état dans `reminders_state.json`.
+
+**Clé requise** : `ANTHROPIC_API_KEY` dans `.env` (sinon `/api/lesson` renvoie 502
+avec un message clair — c'est le seul point qui bloque le fonctionnement complet).
+
+**Persistance web** : `web_progress.json` = `{cert_id: {index, completed[], last_ts}}`,
+écrit à chaque action.
+
+### Bot Telegram historique (chemin parallèle)
+
+Deux systèmes de contenu coexistent côté bot, et c'est le point le plus important à
+comprendre :
 
 1. **Contenu curé (actif)** — `certifications.py` : leçons, quiz et examens écrits en
    dur dans le dict `CERTIFICATIONS[cert_id]`. C'est **ce qu'utilise réellement le bot**.
