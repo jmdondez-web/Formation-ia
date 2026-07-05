@@ -140,8 +140,23 @@ function md(src) {
 }
 
 async function api(url, opts) {
-  const r = await fetch(url, opts);
-  return r.json();
+  // Ne lève jamais : renvoie toujours du JSON, ou { error: "..." } en cas de souci
+  // réseau / HTTP / réponse illisible — pour que l'appelant affiche l'erreur au
+  // lieu de laisser un spinner tourner indéfiniment.
+  let r;
+  try {
+    r = await fetch(url, opts);
+  } catch (e) {
+    return { error: `Connexion au serveur impossible (${esc(e.message)}). Vérifie ta connexion réseau.` };
+  }
+  let data;
+  try {
+    data = await r.json();
+  } catch (e) {
+    return { error: `Réponse illisible du serveur (HTTP ${r.status}).` };
+  }
+  if (!r.ok && !data.error) data.error = `Erreur serveur (HTTP ${r.status}).`;
+  return data;
 }
 
 // ---------- Écran d'accueil : choix de la certif ----------
@@ -149,6 +164,7 @@ async function showHome() {
   state.cert = null;
   app.innerHTML = '<div class="spin"></div>';
   const certs = await api('/api/certs');
+  if (certs.error) { app.innerHTML = `<div class="card">⚠️ ${esc(certs.error)}</div><button class="ghost" onclick="showHome()">Réessayer</button>`; return; }
   let h = '<div class="certs">';
   for (const c of certs) {
     const pct = c.total ? Math.round(c.done / c.total * 100) : 0;
@@ -222,6 +238,13 @@ async function answerQuiz(btn) {
     method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({ cert: state.cert, index: state.index, reponse: letter })
   });
+  if (r.error) {
+    const note = document.getElementById('quiz-note');
+    note.className = 'note bad';
+    note.innerHTML = `⚠️ ${esc(r.error)}`;
+    document.querySelectorAll('.choice').forEach(b => b.disabled = false);
+    return;
+  }
   document.querySelectorAll('.choice').forEach(b => {
     const l = 'ABCD'[b.dataset.i];
     if (l === r.bonne) b.classList.add('good');
