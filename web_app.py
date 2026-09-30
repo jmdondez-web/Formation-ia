@@ -41,7 +41,7 @@ def _save(path, data):
 
 def _cert_progress(cert_id):
     db = _load(PROGRESS_FILE, {})
-    return db.get(cert_id, {"index": 0, "completed": [], "last_ts": ""})
+    return db.get(cert_id, {"index": 0, "completed": [], "a_revoir": [], "last_ts": ""})
 
 
 def _set_cert_progress(cert_id, data):
@@ -85,6 +85,7 @@ def certs():
                 "total": total,
                 "index": prog["index"],
                 "done": len({c["index"] for c in prog["completed"]}),
+                "arevoir": len(prog.get("a_revoir", [])),
             }
         )
     return jsonify(data)
@@ -146,6 +147,14 @@ def answer():
     )
     prog["index"] = max(prog["index"], index + 1)
     prog["last_ts"] = datetime.now().isoformat()
+
+    a_revoir = prog.setdefault("a_revoir", [])
+    if correct:
+        if index in a_revoir:
+            a_revoir.remove(index)
+    elif index not in a_revoir:
+        a_revoir.append(index)
+    prog["a_revoir"] = a_revoir
     _set_cert_progress(cert_id, prog)
 
     return jsonify(
@@ -153,6 +162,7 @@ def answer():
             "correct": correct,
             "bonne": bonne,
             "explication": lecon["quiz"]["explication"],
+            "arevoir": len(a_revoir),
         }
     )
 
@@ -184,7 +194,26 @@ def evaluate():
         logger.exception("Échec évaluation")
         return jsonify({"error": f"Évaluation impossible : {e}"}), 502
 
+    prog = _cert_progress(cert_id)
+    a_revoir = prog.setdefault("a_revoir", [])
+    if result.get("correct"):
+        if index in a_revoir:
+            a_revoir.remove(index)
+    elif index not in a_revoir:
+        a_revoir.append(index)
+    prog["a_revoir"] = a_revoir
+    _set_cert_progress(cert_id, prog)
+    result["arevoir"] = len(a_revoir)
+
     return jsonify(result)
+
+
+@app.route("/api/review")
+def review():
+    """Leçons ratées (file « à revoir »), dans l'ordre des échecs."""
+    cert_id = request.args.get("cert", "")
+    prog = _cert_progress(cert_id)
+    return jsonify({"cert": cert_id, "indexes": prog.get("a_revoir", [])})
 
 
 @app.route("/api/progress")

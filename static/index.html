@@ -108,7 +108,7 @@
 
 <script>
 const app = document.getElementById('app');
-let state = { cert: null, index: 0, data: null };
+let state = { cert: null, index: 0, data: null, mode: 'normal', reviewList: null, reviewPos: 0 };
 
 const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 
@@ -174,6 +174,7 @@ async function showHome() {
       <div class="bar"><i style="width:${pct}%"></i></div>
       <div class="bar-label">${c.done}/${c.total} leçons · ${pct}%</div>
     </button>`;
+    if (c.arevoir) h += `<button class="ghost" style="margin-top:8px" onclick="startReview('${c.id}')">🔧 Réviser les ${c.arevoir} leçon${c.arevoir > 1 ? 's' : ''} ratée${c.arevoir > 1 ? 's' : ''}</button>`;
   }
   h += '</div>';
   h += '<p class="hint">Choisis une piste. Chaque leçon est courte, avec un quiz corrigé et une question à laquelle tu réponds de mémoire — je t\'évalue comme un mentor.</p>';
@@ -183,6 +184,20 @@ async function showHome() {
 function startCert(id, index) {
   state.cert = id;
   state.index = index;
+  state.mode = 'normal';
+  state.reviewList = null;
+  loadLesson();
+}
+
+async function startReview(id) {
+  state.cert = id;
+  app.innerHTML = '<div class="spin"></div>';
+  const r = await api(`/api/review?cert=${id}`);
+  if (r.error || !r.indexes || !r.indexes.length) { state.mode = 'normal'; showHome(); return; }
+  state.mode = 'review';
+  state.reviewList = r.indexes;
+  state.reviewPos = 0;
+  state.index = r.indexes[0];
   loadLesson();
 }
 
@@ -205,7 +220,7 @@ function render() {
   let h = `<button class="back" onclick="showHome()">← Certifications</button>`;
   h += `<div class="bar" style="margin-bottom:12px"><i style="width:${pct}%"></i></div>`;
   h += `<div class="card content">
-    <div class="crumbs">${esc(d.module)} · Leçon ${d.position + 1}/${d.total}</div>
+    <div class="crumbs">${state.mode === 'review' ? '🔧 Révision · ' : ''}${esc(d.module)} · Leçon ${d.position + 1}/${d.total}</div>
     <h3>${esc(L.titre)}</h3>
     ${md(L.contenu)}
     <div class="keys"><b>À retenir</b><ul>${L.points_cles.map(p => '<li>' + md(p).replace(/^<p>|<\/p>$/g, '') + '</li>').join('')}</ul></div>
@@ -227,7 +242,7 @@ function render() {
     <div id="mentor"></div>
   </div>`;
 
-  h += `<button class="ghost" id="next-btn" style="display:none" onclick="next()">Leçon suivante →</button>`;
+  h += `<button class="ghost" id="next-btn" style="display:none" onclick="next()">${state.mode === 'review' ? 'Révision suivante →' : 'Leçon suivante →'}</button>`;
   app.innerHTML = h;
 }
 
@@ -252,7 +267,7 @@ async function answerQuiz(btn) {
   });
   const note = document.getElementById('quiz-note');
   note.className = 'note ' + (r.correct ? 'ok' : 'bad');
-  note.innerHTML = (r.correct ? '✅ <b>Bonne réponse !</b> ' : `❌ La bonne réponse était <b>${r.bonne}</b>. `) + esc(r.explication);
+  note.innerHTML = (r.correct ? '✅ <b>Bonne réponse !</b> ' : `❌ La bonne réponse était <b>${r.bonne}</b>. `) + esc(r.explication) + (r.correct ? (state.mode === 'review' ? ' 🎉 Retirée de tes révisions.' : '') : ' 🔁 Leçon ajoutée à tes révisions — on la reprendra plus tard.');
   document.getElementById('recall-card').style.display = 'block';
   document.getElementById('recall-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -274,13 +289,24 @@ async function evaluate() {
   box.innerHTML = `<div class="mentor">
     <div class="score">${icon} Score : ${pct}%</div>
     <div>${esc(r.feedback)}</div>
-    <div class="tip">🧠 ${esc(r.conseil)}</div>
+    <div class="tip">🧠 ${esc(r.conseil)}${r.correct ? '' : ' 🔁 Leçon ajoutée à tes révisions.'}</div>
   </div>`;
   btn.style.display = 'none';
   document.getElementById('next-btn').style.display = 'block';
 }
 
 function next() {
+  if (state.mode === 'review') {
+    state.reviewPos += 1;
+    if (state.reviewList && state.reviewPos < state.reviewList.length) {
+      state.index = state.reviewList[state.reviewPos];
+      loadLesson();
+    } else {
+      state.mode = 'normal';
+      showHome();
+    }
+    return;
+  }
   state.index += 1;
   loadLesson();
 }

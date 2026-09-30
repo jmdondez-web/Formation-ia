@@ -24,6 +24,7 @@ diplôme officiel).
 - ✍️ Question ouverte de **rappel actif** : tu réponds de mémoire, le mentor évalue
   le fond et te donne un feedback + un conseil de mémorisation
 - 📊 Progression sauvegardée par certification
+- 🔁 Leçons ratées : file « à revoir » qui les repropose jusqu'à réussite
 - 🔔 Rappels de révision espacée sur Telegram
 
 ## Prérequis
