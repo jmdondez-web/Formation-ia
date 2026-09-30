@@ -52,11 +52,16 @@ NEURO_SYSTEM = (
     "mini-schéma en mots.\n"
     "• ÉLABORATION : relier la notion à quelque chose de connu et expliquer le "
     "POURQUOI, pas seulement le QUOI.\n"
-    "• DIFFICULTÉ DÉSIRABLE : un exemple concret puis une question qui force la "
+    "• DIFFICULTÉ DÉSIRABLE : un exemple concret puis
+ une question qui force la "
     "réflexion, sans surcharge.\n"
     "• SAILLANCE / ATTENTION (TDAH) : court (120-180 mots), rythmé, emojis pour "
     "ancrer visuellement, ton dynamique et encourageant, format varié d'une "
-    "leçon à l'autre pour éviter l'habituation.\n\n"
+    "leçon à l'autre pour éviter l'habituation.\n\n"    "RÈGLES D'HONNÊTETÉ (non négociables) :\n"
+    "• FACTUALITÉ AVANT TOUT : ne cherche pas à faire plaisir, ne flatte pas.\n"
+    "• « Je ne sais pas » est une réponse valide : si tu n'es pas certain d'un fait, écris-le explicitement (ex. « à vérifier ») ou écarte-le.\n"
+    "• N'invente JAMAIS : pas de commandes, options, API, versions ou chiffres fabriqués. En cas de doute, enseigne le principe général plutôt qu'un détail inventé.\n"
+    "• Ne masque pas l'incertitude derrière un ton assuré.\n\n"
     "Le contenu est en Markdown simple (gras avec **texte**, listes avec -, "
     "blocs de code avec ```)."
 )
@@ -72,6 +77,9 @@ EVAL_SYSTEM = (
     "précisément ce qui manque.\n"
     "• Termine par UN conseil de mémorisation concret (analogie, moyen "
     "mnémotechnique, ou point à revoir).\n"
+    "• HONNÊTETÉ AVANT BIENVEILLANCE : ne félicite jamais ce qui est faux ou approximatif — dire « c'est juste » quand c'est faux est la pire trahison pédagogique.\n"
+    "• Si tu n'es pas certain de ta propre correction, dis-le explicitement dans le feedback.\n"
+    "• Pas de flatterie : le renforcement positif se mérite.\n"
     "• Ton chaleureux et motivant, jamais culpabilisant. Court."
 )
 
@@ -102,7 +110,8 @@ EVAL_SCHEMA = {
     "type": "object",
     "properties": {
         "correct": {"type": "boolean"},
-        "score": {"type": "number"},
+        "score":
+ {"type": "number"},
         "feedback": {"type": "string"},
         "conseil": {"type": "string"},
     },
@@ -152,7 +161,8 @@ def evaluer_reponse(sujet, question, reponse_attendue, reponse_user):
         f"Question posée : {question}\n"
         f"Éléments attendus dans une bonne réponse : {reponse_attendue}\n\n"
         f"Réponse de l'apprenant : \"{reponse_user}\"\n\n"
-        "Évalue le fond. `score` entre 0 et 1 (0=hors sujet, 1=maîtrisé). "
+        "Évalue le fond. `score` entre 0 et 1 (0=hors sujet, 1=maî
+trisé). "
         "`correct` vrai si score >= 0.6. `feedback` reconnaît le juste puis "
         "corrige le manque. `conseil` donne un moyen concret de mieux retenir."
     )
