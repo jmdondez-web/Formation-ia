@@ -60,7 +60,8 @@ async def envoyer(bot, chat_id):
                     texte = (
                         f"🔔 *Révision ({label})*\n\n"
                         f"Il y a {delai} jour(s), tu as vu :\n"
-                        f"*{sujet}*\n_({cert['titre']} · {module['titre']})_\n\n"
+                        f"*{sujet}*\n_({cert['titre']} · {module['titre']
+})_\n\n"
                         "Prends 30 secondes pour te le remémorer de mémoire, "
                         "puis reprends la formation 🚀"
                     )
@@ -86,7 +87,7 @@ async def main():
     if not chat_id:
         logger.error(
             "TELEGRAM_CHAT_ID introuvable dans .env. "
-            'Ajoutez TELEGRAM_CHAT_ID="votre_id" (ex. 8681010418).'
+            'Ajoutez TELEGRAM_CHAT_ID="votre_id" (ex. ton identifiant numérique).'
         )
         return
 
