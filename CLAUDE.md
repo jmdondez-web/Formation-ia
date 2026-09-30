@@ -71,7 +71,7 @@ certifications : **`claude`** (Anthropic) et **`linux`** (fondamentaux LPIC-1/LF
 
 - `web_app.py` — serveur Flask. Sert `static/index.html` et expose l'API JSON :
   `/api/certs`, `/api/lesson`, `/api/answer` (QCM), `/api/evaluate` (réponse libre),
-  `/api/progress`.
+  `/api/progress`, `/api/review` (file des leçons ratées).
 - `mentor.py` — cœur IA. `generer_lecon()` et `evaluer_reponse()` appellent l'API
   Claude (`claude-opus-4-8`) avec un **system prompt fondé sur les neurosciences**
   (récupération active, chunking, double codage, élaboration, répétition espacée,
@@ -90,8 +90,9 @@ certifications : **`claude`** (Anthropic) et **`linux`** (fondamentaux LPIC-1/LF
 **Clé requise** : `ANTHROPIC_API_KEY` dans `.env` (sinon `/api/lesson` renvoie 502
 avec un message clair — c'est le seul point qui bloque le fonctionnement complet).
 
-**Persistance web** : `web_progress.json` = `{cert_id: {index, completed[], last_ts}}`,
-écrit à chaque action.
+**Persistance web** : `web_progress.json` = `{cert_id: {index, completed[], a_revoir[], last_ts}}`,
+  écrit à chaque action. `a_revoir` liste les index ratés (QCM ou question ouverte),
+  reproposés jusqu'à réussite via le mode révision de la SPA (bouton « Réviser » sur l'accueil).
 
 ### Bot Telegram historique (chemin parallèle)
 
