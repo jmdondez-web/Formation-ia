@@ -38,6 +38,14 @@ longue durée indépendant.
 
 ### Déploiement (production locale, en place)
 
+> **Migration en cours (01/10/2026)** : le mentor redéménage vers le **LXC 103**
+> (Proxmox VE, IP fixe 192.168.1.103, port 8000). Le déploiement cible utilise des
+> **services systemd root** (`deploy/mentor-web.service` + `mentor-rappels.service`)
+> qui remplacent tmux ; la procédure complète est dans **`DEPLOY-LXC.md`**.
+> `MENTOR_API_KEY` (optionnelle, `.env`) protège toutes les routes `/api/*`
+> (en-tête `X-Mentor-Key` ou `?key=`) ; la page est servie avec la clé injectée.
+
+Historique (ancienne VM, à remplacer par le LXC) :
 Le mentor tourne **en permanence** via `start.sh` → session **tmux** `formation`
 (2 fenêtres : `web`, `rappels`), chaque process ayant une boucle de **relance auto**.
 Un **service systemd utilisateur** (`~/.config/systemd/user/formation.service`, copie

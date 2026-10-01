@@ -8,9 +8,10 @@
 import json
 import logging
 import os
+import threading
 from datetime import datetime
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request
 
 import curriculum
 import mentor
@@ -23,6 +24,16 @@ app = Flask(__name__, static_folder="static", static_url_path="")
 PROGRESS_FILE = "web_progress.json"
 CACHE_FILE = "lessons_cache.json"
 
+# Clé d'accès API (optionnelle) : si MENTOR_API_KEY est définie dans .env,
+# toutes les routes /api/* exigent l'en-tête X-Mentor-Key (ou ?key=).
+# La page est servie avec la clé injectée, donc la SPA fonctionne sans action
+# de l'utilisateur ; mais un client externe sans clé est rejeté (401).
+MENTOR_API_KEY = os.environ.get("MENTOR_API_KEY", "").strip()
+
+# Verrou global : Flask est multi-threadé, les fichiers JSON ne supportent pas
+# les accès concurrents (lecture-modification-écriture).
+_JSON_LOCK = threading.RLock()
+
 
 # --------------------------------------------------
 # Petits stores JSON
@@ -30,13 +41,18 @@ CACHE_FILE = "lessons_cache.json"
 def _load(path, default):
     if not os.path.exists(path):
         return default
-    with open(path, "r") as f:
-        return json.load(f)
+    with _JSON_LOCK:
+        with open(path, "r") as f:
+            return json.load(f)
 
 
 def _save(path, data):
-    with open(path, "w") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+    # Écriture atomique : jamais de fichier à moitié écrit en cas de crash.
+    tmp = f"{path}.tmp"
+    with _JSON_LOCK:
+        with open(tmp, "w") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        os.replace(tmp, path)
 
 
 def _cert_progress(cert_id):
@@ -67,9 +83,23 @@ def _cache_lesson(cert_id, index, lecon):
 # --------------------------------------------------
 # Routes
 # --------------------------------------------------
+@app.before_request
+def _check_key():
+    if not MENTOR_API_KEY or not request.path.startswith("/api/"):
+        return None
+    key = request.headers.get("X-Mentor-Key", "") or request.args.get("key", "")
+    if key != MENTOR_API_KEY:
+        return jsonify({"error": "Clé d'accès invalide ou absente"}), 401
+    return None
+
+
 @app.route("/")
 def index():
-    return send_from_directory("static", "index.html")
+    # La clé (si définie) est injectée dans la page pour que la SPA puisse
+    # appeler l'API ; elle n'est jamais committée dans le repo.
+    with open(os.path.join("static", "index.html"), "r", encoding="utf-8") as f:
+        html = f.read()
+    return html.replace("__MENTOR_KEY__", MENTOR_API_KEY)
 
 
 @app.route("/api/certs")

@@ -1,0 +1,16 @@
+# /etc/systemd/system/mentor-rappels.service — LXC 103 (service root, remplace tmux)
+[Unit]
+Description=Mentor IA — rappels Telegram (répétition espacée)
+After=network-online.target mentor-web.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/mentor-ia
+EnvironmentFile=/opt/mentor-ia/.env
+ExecStart=/opt/mentor-ia/venv/bin/python reminders.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

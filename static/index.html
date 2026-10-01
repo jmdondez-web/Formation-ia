@@ -108,6 +108,7 @@
 
 <script>
 const app = document.getElementById('app');
+const MENTOR_KEY = '__MENTOR_KEY__'; // remplacé par le serveur si MENTOR_API_KEY est définie
 let state = { cert: null, index: 0, data: null, mode: 'normal', reviewList: null, reviewPos: 0 };
 
 const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -145,6 +146,8 @@ async function api(url, opts) {
   // lieu de laisser un spinner tourner indéfiniment.
   let r;
   try {
+    opts = Object.assign({}, opts);
+    opts.headers = Object.assign({'X-Mentor-Key': MENTOR_KEY}, opts.headers || {});
     r = await fetch(url, opts);
   } catch (e) {
     return { error: `Connexion au serveur impossible (${esc(e.message)}). Vérifie ta connexion réseau.` };
