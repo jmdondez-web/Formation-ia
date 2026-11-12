@@ -2,18 +2,19 @@
 # ============================================
 # Mentor IA — génération de leçons + évaluation
 # Fondé sur les neurosciences de l'apprentissage,
-# adapté TDAH. Utilise l'API Claude (Anthropic).
+# adapté TDAH. Utilise l'API Mistral AI.
 # ============================================
 
 import json
 import logging
 
-from anthropic import Anthropic
+from mistralai import Mistral
 
 logger = logging.getLogger(__name__)
 
-# Modèle le plus capable. Passer à "claude-sonnet-5" pour réduire les coûts.
-MODEL = "claude-opus-4-8"
+# Modèle Mistral. Passer à "mistral-medium-latest" ou "mistral-small-latest"
+# pour réduire les coûts.
+MODEL = "mistral-large-latest"
 
 
 def load_env_var(key, env_path=".env"):
@@ -29,13 +30,13 @@ def load_env_var(key, env_path=".env"):
 
 
 def _client():
-    api_key = load_env_var("ANTHROPIC_API_KEY")
+    api_key = load_env_var("MISTRAL_API_KEY")
     if not api_key:
         raise RuntimeError(
-            "ANTHROPIC_API_KEY introuvable dans .env. "
-            'Ajoutez ANTHROPIC_API_KEY="votre_cle" dans le fichier .env.'
+            "MISTRAL_API_KEY introuvable dans .env. "
+            'Ajoutez MISTRAL_API_KEY="votre_cle" dans le fichier .env.'
         )
-    return Anthropic(api_key=api_key)
+    return Mistral(api_key=api_key)
 
 
 # --------------------------------------------------
@@ -106,12 +107,12 @@ LESSON_SCHEMA = {
     "additionalProperties": False,
 }
 
+
 EVAL_SCHEMA = {
     "type": "object",
     "properties": {
         "correct": {"type": "boolean"},
-        "score":
- {"type": "number"},
+        "score": {"type": "number"},
         "feedback": {"type": "string"},
         "conseil": {"type": "string"},
     },
@@ -121,8 +122,8 @@ EVAL_SCHEMA = {
 
 
 def _texte(response):
-    """Extrait le premier bloc texte d'une réponse (ignore les blocs thinking)."""
-    return next((b.text for b in response.content if b.type == "text"), "")
+    """Extrait le texte de la réponse Mistral."""
+    return response.choices[0].message.content or ""
 
 
 def generer_lecon(cert_titre, module_titre, sujet, position, total):
@@ -141,12 +142,17 @@ def generer_lecon(cert_titre, module_titre, sujet, position, total):
         "RAPPEL ACTIF à laquelle l'apprenant répond de mémoire, avec ses mots."
     )
     client = _client()
-    response = client.messages.create(
+    response = client.chat.complete(
         model=MODEL,
         max_tokens=2048,
-        system=NEURO_SYSTEM,
-        messages=[{"role": "user", "content": prompt}],
-        output_config={"format": {"type": "json_schema", "schema": LESSON_SCHEMA}},
+        messages=[
+            {"role": "system", "content": NEURO_SYSTEM},
+            {"role": "user", "content": prompt},
+        ],
+        response_format={
+            "type": "json_schema",
+            "json_schema": {"name": "lecon", "schema": LESSON_SCHEMA, "strict": True},
+        },
     )
     return json.loads(_texte(response))
 
@@ -166,13 +172,17 @@ def evaluer_reponse(sujet, question, reponse_attendue, reponse_user):
         "corrige le manque. `conseil` donne un moyen concret de mieux retenir."
     )
     client = _client()
-    response = client.messages.create(
+    response = client.chat.complete(
         model=MODEL,
         max_tokens=1024,
-        system=EVAL_SYSTEM,
-        thinking={"type": "adaptive"},
-        messages=[{"role": "user", "content": prompt}],
-        output_config={"format": {"type": "json_schema", "schema": EVAL_SCHEMA}},
+        messages=[
+            {"role": "system", "content": EVAL_SYSTEM},
+            {"role": "user", "content": prompt},
+        ],
+        response_format={
+            "type": "json_schema",
+            "json_schema": {"name": "evaluation", "schema": EVAL_SCHEMA, "strict": True},
+        },
     )
     return json.loads(_texte(response))
 

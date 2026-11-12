@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 # ============================================
-# Agent Claude - Génération de leçons dynamiques
+# Agent Mistral - Génération de leçons dynamiques
 # adaptées TDAH (courtes, variées, engageantes)
+# (Fichier historique nommé agent_claude.py ; chemin
+#  expérimental, non branché au bot Telegram.)
 # ============================================
 
 import json
 import logging
 import random
 
-from anthropic import Anthropic
+from mistralai import Mistral
 
 from curriculum_tdah import get_sujet
 
 logger = logging.getLogger(__name__)
 
-MODEL = "claude-sonnet-4-6"
+MODEL = "mistral-large-latest"
 
 ANGLES = [
     "une analogie de la vie quotidienne",
@@ -55,17 +57,17 @@ def load_env_var(key, env_path=".env"):
 
 
 def _client():
-    api_key = load_env_var("ANTHROPIC_API_KEY")
+    api_key = load_env_var("MISTRAL_API_KEY")
     if not api_key:
         raise RuntimeError(
-            "ANTHROPIC_API_KEY introuvable dans .env. "
-            "Ajoutez la ligne ANTHROPIC_API_KEY=\"votre_cle\" dans le fichier .env."
+            "MISTRAL_API_KEY introuvable dans .env. "
+            'Ajoutez MISTRAL_API_KEY="votre_cle" dans le fichier .env.'
         )
-    return Anthropic(api_key=api_key)
+    return Mistral(api_key=api_key)
 
 
 def _extraire_json(texte):
-    """Extrait un objet JSON même si Claude l'entoure de ```json ... ```."""
+    """Extrait un objet JSON même s'il est entouré de ```json ... ```."""
     texte = texte.strip()
     if texte.startswith("```"):
         texte = texte.split("```")[1]
@@ -77,7 +79,7 @@ def _extraire_json(texte):
 def generer_lecon(lecon_id):
     """
     Génère dynamiquement une leçon (titre, contenu, quiz) pour l'index global
-    `lecon_id` du curriculum, en s'appuyant sur l'API Anthropic (Claude).
+    `lecon_id` du curriculum, via l'API Mistral.
 
     Retourne None si le curriculum est terminé.
     """
@@ -98,18 +100,21 @@ def generer_lecon(lecon_id):
     )
 
     client = _client()
-    response = client.messages.create(
+    response = client.chat.complete(
         model=MODEL,
         max_tokens=1024,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": prompt}],
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": prompt},
+        ],
+        response_format={"type": "json_object"},
     )
 
-    texte = response.content[0].text
+    texte = response.choices[0].message.content
     try:
         lecon = _extraire_json(texte)
     except (json.JSONDecodeError, IndexError) as e:
-        logger.error("Réponse Claude non parsable en JSON : %s\n%s", e, texte)
+        logger.error("Réponse Mistral non parsable en JSON : %s\n%s", e, texte)
         raise
 
     return lecon
