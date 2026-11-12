@@ -26,7 +26,7 @@ python bot_telegram.py              # le bot par certifications (polling Telegra
 python scheduler.py                 # rappels de révision du bot
 
 ./setup.sh                          # install système + venv + saisie du token (Ubuntu)
-pip install -r requirements.txt     # dépendances : anthropic, flask, python-telegram-bot
+pip install -r requirements.txt     # dépendances : mistralai, flask, python-telegram-bot
 ```
 
 Il n'y a ni tests, ni linter, ni build configurés. Chaque service est un processus
@@ -81,7 +81,7 @@ certifications : **`claude`** (Anthropic) et **`linux`** (fondamentaux LPIC-1/LF
   `/api/certs`, `/api/lesson`, `/api/answer` (QCM), `/api/evaluate` (réponse libre),
   `/api/progress`, `/api/review` (file des leçons ratées).
 - `mentor.py` — cœur IA. `generer_lecon()` et `evaluer_reponse()` appellent l'API
-  Claude (`claude-opus-4-8`) avec un **system prompt fondé sur les neurosciences**
+  Mistral (`mistral-large-latest`) avec un **system prompt fondé sur les neurosciences**
   (récupération active, chunking, double codage, élaboration, répétition espacée,
   format TDAH). Sorties JSON **garanties** via `response_format` json_schema strict (sorties structurées Mistral).
   `evaluer_reponse` garde le même schéma strict EVAL_SCHEMA.
@@ -145,6 +145,6 @@ vérifiée toutes les heures).
 - Tout message utilisateur passe par `send_md()` : envoi Markdown avec **fallback texte
   brut** si Telegram rejette le Markdown (`BadRequest`). Le Markdown doit rester
   compatible Telegram (`*gras*`, blocs ` ``` `).
-- Les ids de modèles Claude sont cités par **id exact** (ex. `claude-opus-4-8`,
-  `claude-sonnet-4-6`, `claude-haiku-4-5`, `claude-fable-5`) — c'est aussi le contenu
+- Les ids de modèles Mistral sont cités par **id exact** (ex. `mistral-large-latest`,
+  `mistral-medium-latest`, `mistral-small-latest`). Les ids de modèles Claude restent cités par id exact dans le contenu enseigné (certification `claude`) — c'est aussi le contenu
   enseigné, ne pas inventer de suffixes de date.
