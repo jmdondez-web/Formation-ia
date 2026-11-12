@@ -26,7 +26,7 @@ python bot_telegram.py              # le bot par certifications (polling Telegra
 python scheduler.py                 # rappels de révision du bot
 
 ./setup.sh                          # install système + venv + saisie du token (Ubuntu)
-pip install -r requirements.txt     # dépendances : anthropic, flask, python-telegram-bot
+pip install -r requirements.txt     # dépendances : mistralai, flask, python-telegram-bot
 ```
 
 Il n'y a ni tests, ni linter, ni build configurés. Chaque service est un processus
@@ -63,7 +63,7 @@ restaurée au boot par tailscaled. `sudo tailscale serve …` nécessite un vrai
 
 `.env` (format `CLE="valeur"`, **jamais** committé) contient :
 - `TOKEN` — token du bot Telegram (@BotFather)
-- `ANTHROPIC_API_KEY` — clé API pour `agent_claude.py`
+- `MISTRAL_API_KEY` — clé API Mistral (console.mistral.ai) pour `mentor.py` et `agent_claude.py`
 
 Le `.env` est lu à la main, ligne par ligne (pas de `python-dotenv`) — voir
 `load_env_var()`, dupliquée dans `agent_claude.py` et `scheduler.py`, et le parsing
@@ -81,10 +81,10 @@ certifications : **`claude`** (Anthropic) et **`linux`** (fondamentaux LPIC-1/LF
   `/api/certs`, `/api/lesson`, `/api/answer` (QCM), `/api/evaluate` (réponse libre),
   `/api/progress`, `/api/review` (file des leçons ratées).
 - `mentor.py` — cœur IA. `generer_lecon()` et `evaluer_reponse()` appellent l'API
-  Claude (`claude-opus-4-8`) avec un **system prompt fondé sur les neurosciences**
+  Mistral (`mistral-large-latest`) avec un **system prompt fondé sur les neurosciences**
   (récupération active, chunking, double codage, élaboration, répétition espacée,
-  format TDAH). Sorties JSON **garanties** via `output_config.format` (json_schema).
-  `evaluer_reponse` utilise `thinking: adaptive` pour un vrai jugement de mentor.
+  format TDAH). Sorties JSON **garanties** via `response_format` json_schema strict (sorties structurées Mistral).
+  `evaluer_reponse` garde le même schéma strict EVAL_SCHEMA.
 - `curriculum.py` — `CURRICULA[cert_id] → modules[] → sujets[]`. Les leçons sont
   **générées dynamiquement** par le mentor (pas de contenu en dur), puis **mises en
   cache** dans `lessons_cache.json` (stable pour la révision espacée). Indexation par
@@ -95,7 +95,7 @@ certifications : **`claude`** (Anthropic) et **`linux`** (fondamentaux LPIC-1/LF
 - `reminders.py` — rappels Telegram (J+1/J+3/J+7) lus depuis `web_progress.json`,
   envoyés à `TELEGRAM_CHAT_ID`, état dans `reminders_state.json`.
 
-**Clé requise** : `ANTHROPIC_API_KEY` dans `.env` (sinon `/api/lesson` renvoie 502
+**Clé requise** : `MISTRAL_API_KEY` dans `.env` (sinon `/api/lesson` renvoie 502
 avec un message clair — c'est le seul point qui bloque le fonctionnement complet).
 
 **Persistance web** : `web_progress.json` = `{cert_id: {index, completed[], a_revoir[], last_ts}}`,
@@ -115,9 +115,9 @@ comprendre :
    leçons sont indexées par un **index global** à plat sur tous les modules.
 
 2. **Contenu dynamique (non branché)** — `agent_claude.py` + `curriculum_tdah.py` :
-   génère les leçons à la volée via l'API Claude à partir du curriculum `CURRICULUM`
+   génère les leçons à la volée via l'API Mistral à partir du curriculum `CURRICULUM`
    (LLMs → Agents → Python avancé → RAG → Fine-tuning). `agent_claude.generer_lecon`
-   demande à Claude un JSON strict `{titre, contenu, quiz}` et le parse. **Ce chemin
+   demande à Mistral un JSON strict `{titre, contenu, quiz}` et le parse. **Ce chemin
    n'est pas appelé par `bot_telegram.py`** ; seul `scheduler.py` réutilise
    `curriculum_tdah.get_sujet` pour libeller ses rappels. Traiter ces deux modules
    comme un système parallèle/expérimental, pas comme la source du bot.
@@ -145,6 +145,6 @@ vérifiée toutes les heures).
 - Tout message utilisateur passe par `send_md()` : envoi Markdown avec **fallback texte
   brut** si Telegram rejette le Markdown (`BadRequest`). Le Markdown doit rester
   compatible Telegram (`*gras*`, blocs ` ``` `).
-- Les ids de modèles Claude sont cités par **id exact** (ex. `claude-opus-4-8`,
-  `claude-sonnet-4-6`, `claude-haiku-4-5`, `claude-fable-5`) — c'est aussi le contenu
+- Les ids de modèles Mistral sont cités par **id exact** (ex. `mistral-large-latest`,
+  `mistral-medium-latest`, `mistral-small-latest`). Les ids de modèles Claude restent cités par id exact dans le contenu enseigné (certification `claude`) — c'est aussi le contenu
   enseigné, ne pas inventer de suffixes de date.

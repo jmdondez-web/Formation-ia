@@ -11,7 +11,7 @@ diplôme officiel).
 ## Deux façons de l'utiliser
 
 - **🌐 Mentor web (`web_app.py`)** — une page responsive (téléphone, tablette,
-  ordinateur) où un mentor IA (Claude) génère des leçons sur mesure, te fait un quiz,
+  ordinateur) où un mentor IA (Mistral) génère des leçons sur mesure, te fait un quiz,
   et **corrige tes réponses libres comme un vrai mentor**. C'est le chemin principal.
 - **🤖 Bot Telegram (`bot_telegram.py`)** — la version historique par certifications,
   avec examen final, directement dans Telegram.
@@ -31,7 +31,7 @@ diplôme officiel).
 
 - Ubuntu / Linux avec Python 3
 - Un **token de bot Telegram** (créé via [@BotFather](https://t.me/BotFather))
-- Une **clé API Anthropic** (seulement pour la génération dynamique de leçons)
+- Une **clé API Mistral** (console.mistral.ai) (seulement pour la génération dynamique de leçons)
 
 ## Installation
 
@@ -65,11 +65,11 @@ Crée un fichier `.env` à la racine (format `CLE="valeur"`) :
 
 ```env
 TOKEN="ton_token_telegram"
-ANTHROPIC_API_KEY="ta_cle_anthropic"
+MISTRAL_API_KEY="ta_cle_mistral (console.mistral.ai)"
 TELEGRAM_CHAT_ID="ton_chat_id"
 ```
 
-> ⚠️ La `ANTHROPIC_API_KEY` est **indispensable** au mentor web (génération et
+> ⚠️ La `MISTRAL_API_KEY` est **indispensable** au mentor web (génération et
 > correction des leçons). Sans elle, l'app renvoie une erreur claire.
 >
 > ⚠️ Le fichier `.env` contient des secrets et n'est **jamais** committé
@@ -156,7 +156,7 @@ chiffré par Tailscale).
 | -------------------- | ----------------------------------------------------------- |
 | `web_app.py`         | Serveur Flask du mentor web (page + API)                    |
 | `static/index.html`  | Interface responsive (tél/tablette)                         |
-| `mentor.py`          | Génération de leçons + évaluation via l'API Claude          |
+| `mentor.py`          | Génération de leçons + évaluation via l'API Mistral          |
 | `curriculum.py`      | Curriculums des pistes `claude` et `linux`                  |
 | `reminders.py`       | Rappels Telegram basés sur la progression web               |
 | `bot_telegram.py`    | Le bot Telegram historique et ses commandes                 |
