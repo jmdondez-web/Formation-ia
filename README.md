@@ -8,6 +8,10 @@ Deux cibles de certification : **`claude`** (Anthropic) et **`linux`** (fondamen
 orientés LPIC-1 / LFCS). Le mentor _entraîne_ à l'examen (il ne délivre pas le
 diplôme officiel).
 
+## Formation à la demande
+
+Sur l'accueil, la carte « ✨ Apprendre ce qui t'intéresse » laisse décrire librement ce qu'on veut apprendre. Le mentor propose un plan (3-4 modules, json_schema strict, règles d'honnêteté), l'apprenant le valide ou le modifie, et la piste est créée dans `formations.json` — supprimable depuis l'accueil avec sa progression.
+
 ## Deux façons de l'utiliser
 
 - **🌐 Mentor web (`web_app.py`)** — une page responsive (téléphone, tablette,

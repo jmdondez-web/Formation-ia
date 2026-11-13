@@ -87,7 +87,7 @@ certifications : **`claude`** (Anthropic) et **`linux`** (fondamentaux LPIC-1/LF
   `evaluer_reponse` garde le même schéma strict EVAL_SCHEMA.
 - `curriculum.py` — `CURRICULA[cert_id] → modules[] → sujets[]`. Les leçons sont
   **générées dynamiquement** par le mentor (pas de contenu en dur), puis **mises en
-  cache** dans `lessons_cache.json` (stable pour la révision espacée). Indexation par
+  cache** dans `lessons_cache.json ; `formations.json` (pistes sur mesure créées par l'apprenant)` (stable pour la révision espacée). Indexation par
   index global à plat, comme le reste du projet.
 - `static/index.html` — SPA mobile-first, JS vanilla, thème clair/sombre, rendu
   Markdown minimal maison. Flux : choix de piste → leçon + points clés → QCM corrigé
