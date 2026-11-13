@@ -92,20 +92,68 @@ CURRICULA = {
 }
 
 
+# ---------- Formations personnalisées (« formation à la demande ») ----------
+# Les pistes créées sur demande vivent dans formations.json, même structure
+# que CURRICULA (titre, description, modules[{titre, sujets[]}]). Le fichier
+# est créé à la première demande validée.
+
+import json as _json
+import os as _os
+
+FORMATIONS_FILE = "formations.json"
+
+
+def _load_formations():
+    try:
+        with open(FORMATIONS_FILE, "r", encoding="utf-8") as f:
+            return _json.load(f)
+    except (FileNotFoundError, ValueError):
+        return {}
+
+
+def _save_formations(formations):
+    # Écriture atomique (même discipline que web_app).
+    tmp = FORMATIONS_FILE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        _json.dump(formations, f, indent=2, ensure_ascii=False)
+    _os.replace(tmp, FORMATIONS_FILE)
+
+
+def add_formation(cert_id, cert):
+    """Sauvegarde une formation créée sur demande."""
+    formations = _load_formations()
+    formations[cert_id] = cert
+    _save_formations(formations)
+
+
+def delete_formation(cert_id):
+    """Supprime une formation personnalisée. True si elle existait."""
+    formations = _load_formations()
+    if cert_id not in formations:
+        return False
+    del formations[cert_id]
+    _save_formations(formations)
+    return True
+
+
 def list_certs():
-    """[(cert_id, titre, description, total_lecons), ...]"""
-    return [
-        (cid, c["titre"], c["description"], total_lecons(cid))
-        for cid, c in CURRICULA.items()
-    ]
+    """[(cert_id, titre, description, total_lecons, perso), ...]"""
+    out = []
+    for source, perso in ((CURRICULA, False), (_load_formations(), True)):
+        for cid, c in source.items():
+            out.append((cid, c["titre"], c["description"], total_lecons(cid), perso))
+    return out
 
 
 def get_cert(cert_id):
-    return CURRICULA.get(cert_id)
+    cert = CURRICULA.get(cert_id)
+    if cert:
+        return cert
+    return _load_formations().get(cert_id)
 
 
 def total_lecons(cert_id):
-    cert = CURRICULA.get(cert_id)
+    cert = get_cert(cert_id)
     if not cert:
         return 0
     return sum(len(m["sujets"]) for m in cert["modules"])
@@ -113,7 +161,7 @@ def total_lecons(cert_id):
 
 def get_sujet(cert_id, index):
     """Retourne (cert, module, sujet, position, total) ou None si hors borne."""
-    cert = CURRICULA.get(cert_id)
+    cert = get_cert(cert_id)
     if not cert:
         return None
     pos = 0

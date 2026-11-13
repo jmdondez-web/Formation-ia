@@ -78,6 +78,11 @@
     border-radius: 14px; padding: 12px 14px; font: inherit; background: var(--bg); color: inherit;
   }
   textarea:focus { outline: none; border-color: var(--accent); }
+  input.text {
+    width: 100%; border: 1.5px solid var(--line); border-radius: 14px; padding: 12px 14px;
+    font: inherit; background: var(--bg); color: inherit;
+  }
+  input.text:focus { outline: none; border-color: var(--accent); }
   button.primary {
     width: 100%; border: none; background: var(--accent); color: #fff; font: inherit; font-weight: 700;
     border-radius: 14px; padding: 14px; cursor: pointer; margin-top: 12px;
@@ -168,7 +173,15 @@ async function showHome() {
   app.innerHTML = '<div class="spin"></div>';
   const certs = await api('/api/certs');
   if (certs.error) { app.innerHTML = `<div class="card">⚠️ ${esc(certs.error)}</div><button class="ghost" onclick="showHome()">Réessayer</button>`; return; }
-  let h = '<div class="certs">';
+  let h = `<div class="card" id="demande-card">
+    <h2 style="margin:0 0 6px;font-size:17px">✨ Apprendre ce qui t'intéresse</h2>
+    <p style="margin:0 0 10px;color:var(--muted);font-size:14px">Décris ce que tu veux apprendre : je propose un plan, tu valides, on commence sereinement.</p>
+    <input class="text" id="demande" placeholder="Ex. la photographie de nuit, Docker, le vocabulaire du vin…"
+      onkeydown="if(event.key==='Enter')proposePlan()">
+    <button class="primary" id="plan-btn" onclick="proposePlan()">Proposer un plan</button>
+    <div id="plan-preview"></div>
+  </div>`;
+  h += '<div class="certs">';
   for (const c of certs) {
     const pct = c.total ? Math.round(c.done / c.total * 100) : 0;
     h += `<button class="cert" onclick="startCert('${c.id}', ${c.index})">
@@ -178,6 +191,7 @@ async function showHome() {
       <div class="bar-label">${c.done}/${c.total} leçons · ${pct}%</div>
     </button>`;
     if (c.arevoir) h += `<button class="ghost" style="margin-top:8px" onclick="startReview('${c.id}')">🔧 Réviser les ${c.arevoir} leçon${c.arevoir > 1 ? 's' : ''} ratée${c.arevoir > 1 ? 's' : ''}</button>`;
+    if (c.perso) h += `<button class="ghost" style="margin-top:8px" onclick="deleteFormation('${c.id}')">🗑 Supprimer cette formation</button>`;
   }
   h += '</div>';
   h += '<p class="hint">Choisis une piste. Chaque leçon est courte, avec un quiz corrigé et une question à laquelle tu réponds de mémoire — je t\'évalue comme un mentor.</p>';
@@ -312,6 +326,64 @@ function next() {
   }
   state.index += 1;
   loadLesson();
+}
+
+// ---------- Formation à la demande ----------
+let pendingPlan = null;
+
+async function proposePlan() {
+  const v = document.getElementById('demande').value.trim();
+  if (!v) return;
+  const btn = document.getElementById('plan-btn');
+  btn.disabled = true; btn.textContent = 'Je réfléchis…';
+  const prev = document.getElementById('plan-preview');
+  prev.innerHTML = '<div class="spin"></div>';
+  const r = await api('/api/plan', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ demande: v })
+  });
+  btn.disabled = false; btn.textContent = 'Proposer un plan';
+  if (r.error) { prev.innerHTML = `<div class="note bad">⚠️ ${esc(r.error)}</div>`; return; }
+  pendingPlan = r.plan;
+  renderPlanPreview();
+}
+
+function renderPlanPreview() {
+  const p = pendingPlan;
+  const prev = document.getElementById('plan-preview');
+  let h = `<div class="mentor" style="margin-top:12px">
+    <div class="score">📚 ${esc(p.titre)}</div>
+    <div style="font-size:14px;color:var(--muted)">${esc(p.description || '')}</div>`;
+  let n = 0;
+  for (const m of (p.modules || [])) {
+    h += `<div style="margin-top:10px"><b>${esc(m.titre)}</b><ul style="margin:4px 0 0;padding-left:18px">`;
+    for (const s of (m.sujets || [])) { n++; h += `<li style="font-size:14px">${esc(s)}</li>`; }
+    h += '</ul></div>';
+  }
+  h += `<div class="hint">${n} leçons courtes au total.</div></div>`;
+  h += `<button class="primary" onclick="confirmPlan()">Valider cette formation</button>`;
+  h += `<button class="ghost" onclick="document.getElementById('plan-preview').innerHTML='';document.getElementById('demande').focus()">Modifier ma demande</button>`;
+  prev.innerHTML = h;
+}
+
+async function confirmPlan() {
+  if (!pendingPlan) return;
+  const prev = document.getElementById('plan-preview');
+  prev.innerHTML = '<div class="spin"></div>';
+  const r = await api('/api/formations', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ plan: pendingPlan })
+  });
+  if (r.error) { prev.innerHTML = `<div class="note bad">⚠️ ${esc(r.error)}</div>`; return; }
+  pendingPlan = null;
+  showHome();
+}
+
+async function deleteFormation(id) {
+  if (!confirm('Supprimer cette formation et sa progression ?')) return;
+  const r = await api(`/api/formations/${id}`, { method: 'DELETE' });
+  if (r.error) { alert(r.error); return; }
+  showHome();
 }
 
 showHome();
