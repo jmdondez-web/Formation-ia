@@ -87,7 +87,7 @@ certifications : **`claude`** (Anthropic) et **`linux`** (fondamentaux LPIC-1/LF
   `evaluer_reponse` garde le même schéma strict EVAL_SCHEMA.
 - `curriculum.py` — `CURRICULA[cert_id] → modules[] → sujets[]`. Les leçons sont
   **générées dynamiquement** par le mentor (pas de contenu en dur), puis **mises en
-  cache** dans `lessons_cache.json ; `formations.json` (pistes sur mesure créées par l'apprenant)` (stable pour la révision espacée). Indexation par
+  cache** dans `lessons_cache.json` (stable pour la révision espacée). Indexation par
   index global à plat, comme le reste du projet.
 - `static/index.html` — SPA mobile-first, JS vanilla, thème clair/sombre, rendu
   Markdown minimal maison. Flux : choix de piste → leçon + points clés → QCM corrigé
@@ -101,6 +101,10 @@ avec un message clair — c'est le seul point qui bloque le fonctionnement compl
 **Persistance web** : `web_progress.json` = `{cert_id: {index, completed[], a_revoir[], last_ts}}`,
   écrit à chaque action. `a_revoir` liste les index ratés (QCM ou question ouverte),
   reproposés jusqu'à réussite via le mode révision de la SPA (bouton « Réviser » sur l'accueil).
+  `formations.json` — pistes sur mesure créées via la carte « Apprendre ce qui t'intéresse »
+  (`POST /api/plan` propose, `POST /api/formations` valide et crée, `DELETE /api/formations/<id>`
+  supprime avec progression et cache). Les pistes perso sont marquées `perso` par
+  `curriculum.list_certs()`.
 
 ### Bot Telegram historique (chemin parallèle)
 
