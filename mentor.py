@@ -187,6 +187,73 @@ def evaluer_reponse(sujet, question, reponse_attendue, reponse_user):
     return json.loads(_texte(response))
 
 
+PLAN_SYSTEM = (
+    "Tu es un concepteur de formations pour adultes, dont des personnes TDAH. "
+    "Tu transformes une demande libre en plan de formation réaliste et serein.\n"
+    "• Le plan doit être ATTEIGNABLE : 3 à 4 modules maximum, 3 à 4 sujets par module.\n"
+    "• Progression logique du plus simple au plus avancé.\n"
+    "• Chaque sujet est une phrase précise et autonome (on doit pouvoir "
+    "enseigner ce point en une leçon courte).\n"
+    "• `titre` court avec un emoji ; `description` en une phrase, ton positif.\n\n"
+    "RÈGLES D'HONNÊTETÉ (non négociables) :\n"
+    "• Si la demande est vague, propose quand même un plan raisonnable en "
+    "commençant par les fondamentaux.\n"
+    "• Si la demande est irréaliste (apprendre \"tout\" d'un vaste domaine), "
+    "concentre le plan sur un sous-ensemble cohérent et utile, sans promettre "
+    "l'impossible.\n"
+    "• N'invente pas de prérequis, outils ou certifications qui n'existent pas ; "
+    "en cas de doute, reste sur des notions générales vérifiables."
+)
+
+PLAN_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "titre": {"type": "string"},
+        "description": {"type": "string"},
+        "modules": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "titre": {"type": "string"},
+                    "sujets": {"type": "array", "items": {"type": "string"}},
+                },
+                "required": ["titre", "sujets"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["titre", "description", "modules"],
+    "additionalProperties": False,
+}
+
+
+def proposer_plan(demande):
+    """
+    Transforme une demande libre (« je veuy apprendre X ») en plan de
+    formation (titre, description, modules de sujets). Rien n'est sauvegardé
+    ici : c'est l'apprenant qui valide le plan côté web.
+    """
+    prompt = (
+        f'Demande de l\'apprenant : "{demande}"\n\n'
+        "Propose le plan de formation correspondant. Réponds en français."
+    )
+    client = _client()
+    response = client.chat.complete(
+        model=MODEL,
+        max_tokens=1500,
+        messages=[
+            {"role": "system", "content": PLAN_SYSTEM},
+            {"role": "user", "content": prompt},
+        ],
+        response_format={
+            "type": "json_schema",
+            "json_schema": {"name": "plan", "schema": PLAN_SCHEMA, "strict": True},
+        },
+    )
+    return json.loads(_texte(response))
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     lecon = generer_lecon(

@@ -105,7 +105,7 @@ def index():
 @app.route("/api/certs")
 def certs():
     data = []
-    for cid, titre, desc, total in curriculum.list_certs():
+    for cid, titre, desc, total, perso in curriculum.list_certs():
         prog = _cert_progress(cid)
         data.append(
             {
@@ -116,9 +116,68 @@ def certs():
                 "index": prog["index"],
                 "done": len({c["index"] for c in prog["completed"]}),
                 "arevoir": len(prog.get("a_revoir", [])),
+                "perso": perso,
             }
         )
     return jsonify(data)
+
+
+@app.route("/api/plan", methods=["POST"])
+def plan():
+    """Formation à la demande : une demande libre devient un plan proposé
+    (rien n'est sauvegardé tant que l'apprenant ne valide pas)."""
+    body = request.get_json(force=True)
+    demande = (body.get("demande") or "").strip()
+    if len(demande) < 3:
+        return jsonify({"error": "Décris ce que tu veux apprendre en quelques mots."}), 400
+    try:
+        proposition = mentor.proposer_plan(demande)
+    except Exception as e:
+        logger.exception("Échec proposition de plan")
+        return jsonify({"error": f"Plan impossible : {e}"}), 502
+    return jsonify({"plan": proposition})
+
+
+@app.route("/api/formations", methods=["POST"])
+def formations_create():
+    """Valide un plan proposé : la formation est créée et listée à l'accueil."""
+    body = request.get_json(force=True)
+    p = body.get("plan") or {}
+    modules = p.get("modules") or []
+    if not p.get("titre") or not modules:
+        return jsonify({"error": "Plan invalide."}), 400
+    cert = {
+        "titre": str(p["titre"]),
+        "description": str(p.get("description", "")),
+        "modules": [
+            {"titre": str(m.get("titre", "")), "sujets": [str(s) for s in (m.get("sujets") or [])]}
+            for m in modules
+            if m.get("sujets")
+        ],
+    }
+    if not cert["modules"]:
+        return jsonify({"error": "Plan invalide."}), 400
+    cert_id = "perso-" + datetime.now().strftime("%Y%m%d%H%M%S")
+    curriculum.add_formation(cert_id, cert)
+    logger.info("Formation sur mesure créée : %s (%s)", cert_id, cert[bttr"])
+    return jsonify({"id": cert_id})
+
+
+@app.route("/api/formations/<cert_id>", methods=["DELETE"])
+def formations_delete(cert_id):
+    """Suprime une formation sur mesure + sa progression et ses leçons cachées."""
+    if not cert_id.startswith("perso-"):
+        return jsonify({"error": "Seules les formations sur mesure peuvent être supprimées."}), 403
+    deleted = curriculum.delete_formation(cert_id)
+    if deleted:
+        prog = _load(PROGRESS_FILE, {})
+        prog.pop(cert_id, None)
+        _save(PROGRESS_FILE, prog)
+        cache = _load(CACHE_FILE, {})
+        for k in [k for k in cache if k.startswith(f"{cert_id}:")]:
+            del cache[k]
+        _save(CACHE_FILE, cache)
+    return jsonify({"deleted": deleted})
 
 
 @app.route("/api/lesson")
