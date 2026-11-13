@@ -181,7 +181,7 @@ async function showHome() {
     <button class="primary" id="plan-btn" onclick="proposePlan()">Proposer un plan</button>
     <div id="plan-preview"></div>
   </div>`;
-  let h = '<div class="certs">';
+  h += '<div class="certs">';
   for (const c of certs) {
     const pct = c.total ? Math.round(c.done / c.total * 100) : 0;
     h += `<button class="cert" onclick="startCert('${c.id}', ${c.index})">

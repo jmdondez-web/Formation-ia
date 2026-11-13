@@ -159,13 +159,13 @@ def formations_create():
         return jsonify({"error": "Plan invalide."}), 400
     cert_id = "perso-" + datetime.now().strftime("%Y%m%d%H%M%S")
     curriculum.add_formation(cert_id, cert)
-    logger.info("Formation sur mesure créée : %s (%s)", cert_id, cert[bttr"])
+    logger.info("Formation sur mesure créée : %s (%s)", cert_id, cert["titre"])
     return jsonify({"id": cert_id})
 
 
 @app.route("/api/formations/<cert_id>", methods=["DELETE"])
 def formations_delete(cert_id):
-    """Suprime une formation sur mesure + sa progression et ses leçons cachées."""
+    """Supprime une formation sur mesure + sa progression et ses leçons cachées."""
     if not cert_id.startswith("perso-"):
         return jsonify({"error": "Seules les formations sur mesure peuvent être supprimées."}), 403
     deleted = curriculum.delete_formation(cert_id)

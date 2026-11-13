@@ -230,7 +230,7 @@ PLAN_SCHEMA = {
 
 def proposer_plan(demande):
     """
-    Transforme une demande libre (« je veuy apprendre X ») en plan de
+    Transforme une demande libre (« je veux apprendre X ») en plan de
     formation (titre, description, modules de sujets). Rien n'est sauvegardé
     ici : c'est l'apprenant qui valide le plan côté web.
     """
