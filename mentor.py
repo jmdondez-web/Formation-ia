@@ -153,7 +153,7 @@ def generer_lecon(cert_titre, module_titre, sujet, position, total):
     client = _client()
     response = client.chat.complete(
         model=MODEL,
-        max_tokens=2048,
+        max_tokens=8000,  # thinking du modèle consomme des tokens : plafond large, coût = usage réel
         messages=[
             {"role": "system", "content": NEURO_SYSTEM},
             {"role": "user", "content": prompt},
@@ -183,7 +183,7 @@ def evaluer_reponse(sujet, question, reponse_attendue, reponse_user):
     client = _client()
     response = client.chat.complete(
         model=MODEL,
-        max_tokens=1024,
+        max_tokens=4096,  # idem
         messages=[
             {"role": "system", "content": EVAL_SYSTEM},
             {"role": "user", "content": prompt},
@@ -250,7 +250,7 @@ def proposer_plan(demande):
     client = _client()
     response = client.chat.complete(
         model=MODEL,
-        max_tokens=1500,
+        max_tokens=6000,  # idem
         messages=[
             {"role": "system", "content": PLAN_SYSTEM},
             {"role": "user", "content": prompt},
