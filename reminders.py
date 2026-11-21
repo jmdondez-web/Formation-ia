@@ -51,22 +51,16 @@ async def envoyer(bot, chat_id):
             if info is None:
                 continue
             _, module, sujet, _, _ = info
-            cle = f"${cert_id}:{c['index']}"
+            cle = f"{cert_id}:{c['index']}"
             envoyes = etat.get(cle, [])
             jours = (maintenant - datetime.fromisoformat(c["ts"])).days
 
             for label, delai in RAPPELS.items():
                 if jours >= delai and label not in envoyes:
                     texte = (
-                        f"🔔 *Révision (${label})*
-
-"
-                        f"Il y a ${delai} jour(s), tu as vu :
-"
-                        f"*${sujet}*
-_(${cert['titre']} · ${module['titre']})_
-
-"
+                        f"🔔 *Révision ({label})*\n\n"
+                        f"Il y a {delai} jour(s), tu as vu :\n"
+                        f"*{sujet}*\n_({cert['titre']} · {module['titre']})_\n\n"
                         "Prends 30 secondes pour te le remémorer de mémoire, "
                         "puis reprends la formation 🚀"
                     )
