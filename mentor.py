@@ -122,8 +122,17 @@ EVAL_SCHEMA = {
 
 
 def _texte(response):
-    """Extrait le texte de la réponse Mistral."""
-    return response.choices[0].message.content or ""
+    """Extrait le texte de la réponse Mistral.
+
+    Le SDK 1.12 peut renvoyer le contenu soit comme une chaîne, soit
+    comme une liste de fragments (TextChunk, etc.) : on gère les deux.
+    """
+    contenu = response.choices[0].message.content
+    if contenu is None:
+        return ""
+    if isinstance(contenu, str):
+        return contenu
+    return "".join(getattr(fragment, "text", "") or "" for fragment in contenu)
 
 
 def generer_lecon(cert_titre, module_titre, sujet, position, total):
